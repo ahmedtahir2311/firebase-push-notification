@@ -1,27 +1,37 @@
 importScripts(
-  "https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"
+  "https://www.gstatic.com/firebasejs/9.10.0/firebase-app-compat.js"
 );
 importScripts(
-  "https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js"
+  "https://www.gstatic.com/firebasejs/9.10.0/firebase-messaging-compat.js"
 );
 
-firebase.initializeApp({
-  apiKey: "AIzaSyA3KH7VYfgGNZSLC0ZF_Gy0boWc_u_Ehq0",
-  authDomain: "crosscheck-test.firebaseapp.com",
-  projectId: "crosscheck-test",
-  storageBucket: "crosscheck-test.appspot.com",
-  messagingSenderId: "960475177247",
-  appId: "1:960475177247:web:811f3e54fe1f428cfe102a",
-  measurementId: "G-H0EMM05DCW",
-});
+// const firebaseConfig = JSON.parse(new URL(location).searchparams.get('firebaseconfig'));
 
-const isSupported = firebase.messaging.isSupported();
-if (isSupported) {
-  const messaging = firebase.messaging();
-  messaging.onBackgroundMessage(({ notification: { title, body, image } }) => {
-    self.registration.showNotification(title, {
-      body,
-      icon: image || "/assets/icons/icon-72x72.png",
-    });
+const firebaseConfig = JSON.parse(
+  new URL(location).searchParams.get("firebaseconfig")
+);
+//  how to use ENV in Public Folder as process is undefined in serviceworker.js
+
+firebase.initializeApp(firebaseConfig);
+
+const messaging = firebase.messaging();
+
+//this will fire when the user is not main application tab :
+//inActive
+messaging.onBackgroundMessage((payload) => {
+  const notificationTitle = payload.notification.title;
+
+  const notificationOptions = {
+    body: payload.notification.body,
+    icon: payload.data.actorImage,
+  };
+  console.log("onBackgroundMessage", payload);
+  self.registration.showNotification(notificationTitle, notificationOptions);
+  self.addEventListener("notificationclick", (event) => {
+    event.notification.close(); // Close the notification
+
+    // Add your redirection logic here
+    const openUrl = payload.data.redirectUrl; // Replace with the URL you want to open
+    event.waitUntil(clients.openWindow(openUrl));
   });
-}
+});
